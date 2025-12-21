@@ -6,6 +6,9 @@ import android.media.MediaMetadata
 import android.media.session.MediaController
 import android.media.session.MediaSession
 import android.media.session.PlaybackState
+import android.os.Handler
+import android.os.Looper
+import android.os.SystemClock
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import android.util.Log
@@ -33,6 +36,8 @@ class MediaNotificationListener : NotificationListenerService() {
     }
 
     private val activeControllers = mutableMapOf<String, MediaController>()
+    private val progressHandler = Handler(Looper.getMainLooper())
+    private var updateProgressRunnable: Runnable? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -45,6 +50,7 @@ class MediaNotificationListener : NotificationListenerService() {
         instance = null
         activeControllers.values.forEach { it.unregisterCallback(mediaCallback) }
         activeControllers.clear()
+        stopUpdatingProgress()
         Log.d(TAG, "Service destroyed")
     }
 
@@ -80,6 +86,7 @@ class MediaNotificationListener : NotificationListenerService() {
                 if (currentController == controller) {
                     currentController = null
                     currentMetadata = null
+                    stopUpdatingProgress()
                     updateWidget()
                 }
             }
@@ -151,10 +158,38 @@ class MediaNotificationListener : NotificationListenerService() {
 
                 Log.d(TAG, "Updated metadata: $title - $artist (Playing: $isPlaying)")
                 updateWidget()
+                if (isPlaying) {
+                    startUpdatingProgress(controller)
+                } else {
+                    stopUpdatingProgress()
+                }
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error updating metadata", e)
         }
+    }
+
+    private fun startUpdatingProgress(controller: MediaController) {
+        if (updateProgressRunnable != null) return // Already running
+
+        updateProgressRunnable = Runnable {
+            val playbackState = controller.playbackState
+            if (playbackState != null && playbackState.state == PlaybackState.STATE_PLAYING) {
+                val elapsed = SystemClock.elapsedRealtime() - playbackState.lastPositionUpdateTime
+                val currentPosition = playbackState.position + (elapsed * playbackState.playbackSpeed).toLong()
+                currentMetadata = currentMetadata?.copy(position = currentPosition)
+                updateWidget()
+                progressHandler.postDelayed(updateProgressRunnable!!, 1000)
+            } else {
+                stopUpdatingProgress()
+            }
+        }
+        progressHandler.post(updateProgressRunnable!!)
+    }
+
+    private fun stopUpdatingProgress() {
+        updateProgressRunnable?.let { progressHandler.removeCallbacks(it) }
+        updateProgressRunnable = null
     }
 
     private fun updateWidget() {
