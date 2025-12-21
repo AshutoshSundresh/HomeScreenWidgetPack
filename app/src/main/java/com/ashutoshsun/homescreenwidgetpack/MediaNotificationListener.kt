@@ -109,30 +109,35 @@ class MediaNotificationListener : NotificationListenerService() {
                     Log.d(TAG, "Found media session from: ${sbn.packageName}")
                 }
                 
-                // Update current controller and metadata
+                // Update current controller and metadata with notification small icon
                 currentController = controller
-                updateMetadataFromController(controller)
+                currentPackageName = sbn.packageName
+                currentNotification = sbn
+                updateMetadataFromController(controller, sbn)
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error checking for media session", e)
         }
     }
 
+    private var currentPackageName: String? = null
+    private var currentNotification: StatusBarNotification? = null
+    
     private val mediaCallback = object : MediaController.Callback() {
         override fun onPlaybackStateChanged(state: PlaybackState?) {
             super.onPlaybackStateChanged(state)
             Log.d(TAG, "Playback state changed: ${state?.state}")
-            currentController?.let { updateMetadataFromController(it) }
+            currentController?.let { currentNotification?.let { sbn -> updateMetadataFromController(it, sbn) } }
         }
 
         override fun onMetadataChanged(metadata: MediaMetadata?) {
             super.onMetadataChanged(metadata)
             Log.d(TAG, "Metadata changed")
-            currentController?.let { updateMetadataFromController(it) }
+            currentController?.let { currentNotification?.let { sbn -> updateMetadataFromController(it, sbn) } }
         }
     }
 
-    private fun updateMetadataFromController(controller: MediaController) {
+    private fun updateMetadataFromController(controller: MediaController, sbn: StatusBarNotification) {
         try {
             val metadata = controller.metadata
             val playbackState = controller.playbackState
@@ -146,6 +151,9 @@ class MediaNotificationListener : NotificationListenerService() {
                 
                 val isPlaying = playbackState?.state == PlaybackState.STATE_PLAYING
                 val position = playbackState?.position ?: 0L
+                
+                // Get notification small icon (the monochrome icon from status bar)
+                val appIcon = getNotificationIcon(sbn)
 
                 currentMetadata = com.ashutoshsun.homescreenwidgetpack.MediaMetadata(
                     title = title,
@@ -153,7 +161,8 @@ class MediaNotificationListener : NotificationListenerService() {
                     albumArt = albumArt,
                     isPlaying = isPlaying,
                     position = position,
-                    duration = duration
+                    duration = duration,
+                    appIcon = appIcon
                 )
 
                 Log.d(TAG, "Updated metadata: $title - $artist (Playing: $isPlaying)")
@@ -166,6 +175,30 @@ class MediaNotificationListener : NotificationListenerService() {
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error updating metadata", e)
+        }
+    }
+    
+    private fun getNotificationIcon(sbn: StatusBarNotification): Bitmap? {
+        return try {
+            // Get the small icon from the notification (status bar icon)
+            val icon = sbn.notification.smallIcon?.loadDrawable(this)
+            
+            if (icon != null) {
+                val bitmap = Bitmap.createBitmap(
+                    icon.intrinsicWidth.coerceAtLeast(24),
+                    icon.intrinsicHeight.coerceAtLeast(24),
+                    Bitmap.Config.ARGB_8888
+                )
+                val canvas = android.graphics.Canvas(bitmap)
+                icon.setBounds(0, 0, canvas.width, canvas.height)
+                icon.draw(canvas)
+                bitmap
+            } else {
+                null
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error getting notification icon", e)
+            null
         }
     }
 
