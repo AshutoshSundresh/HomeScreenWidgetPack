@@ -11,6 +11,7 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.RectF
+import android.os.Bundle
 import android.renderscript.Allocation
 import android.renderscript.Element
 import android.renderscript.RenderScript
@@ -45,7 +46,18 @@ class MusicWidgetProvider : AppWidgetProvider() {
             appWidgetId: Int,
             metadata: MediaMetadata?
         ) {
-            val views = RemoteViews(context.packageName, R.layout.music_widget_layout)
+            val options = appWidgetManager.getAppWidgetOptions(appWidgetId)
+            val maxHeight = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, 0)
+            val isSmallLayout = maxHeight < 150
+
+            val layoutId = if (isSmallLayout) {
+                R.layout.music_widget_layout_2x1
+            } else {
+                R.layout.music_widget_layout
+            }
+            val views = RemoteViews(context.packageName, layoutId)
+
+            val playPauseButtonSize = if (isSmallLayout) 48 else 64
 
             // Update track information
             if (metadata != null && metadata.albumArt != null) {
@@ -77,7 +89,7 @@ class MusicWidgetProvider : AppWidgetProvider() {
                 views.setTextColor(R.id.artist_name, Color.WHITE)
                 
                 // Create colored circle background for play/pause button
-                val circleBackground = createColoredCircle(64, dominantColor)
+                val circleBackground = createColoredCircle(playPauseButtonSize, dominantColor)
                 views.setImageViewBitmap(R.id.play_pause_button_background, circleBackground)
                 
                 // Set dark icon
@@ -85,8 +97,10 @@ class MusicWidgetProvider : AppWidgetProvider() {
                 
                 // Use dominant color for all playback controls (notification icon can be tinted)
                 views.setInt(R.id.music_icon, "setColorFilter", dominantColor)
-                views.setInt(R.id.previous_button, "setColorFilter", dominantColor)
-                views.setInt(R.id.next_button, "setColorFilter", dominantColor)
+                if (!isSmallLayout) {
+                    views.setInt(R.id.previous_button, "setColorFilter", dominantColor)
+                    views.setInt(R.id.next_button, "setColorFilter", dominantColor)
+                }
                 
                 // Apply darker scrim overlay on top of blur
                 val scrimColor = Color.argb(102, 0, 0, 0) // 40% dark scrim
@@ -109,7 +123,7 @@ class MusicWidgetProvider : AppWidgetProvider() {
                 } else {
                     0f
                 }
-                val progressRing = createProgressRing(64, dominantColor, progress)
+                val progressRing = createProgressRing(playPauseButtonSize, dominantColor, progress)
                 views.setImageViewBitmap(R.id.progress_ring, progressRing)
                 views.setViewVisibility(R.id.progress_ring, View.VISIBLE)
             } else {
@@ -139,7 +153,7 @@ class MusicWidgetProvider : AppWidgetProvider() {
                 val controlsTint = if (isDark) Color.WHITE else Color.BLACK
                 
                 // For no music state, create white/black circle
-                val circleBackground = createColoredCircle(64, controlsTint)
+                val circleBackground = createColoredCircle(playPauseButtonSize, controlsTint)
                 views.setImageViewBitmap(R.id.play_pause_button_background, circleBackground)
                 
                 // Set contrasting icon color
@@ -153,7 +167,7 @@ class MusicWidgetProvider : AppWidgetProvider() {
             }
 
             // Set up click listeners
-            setupClickListeners(context, views)
+            setupClickListeners(context, views, !isSmallLayout, metadata)
 
             appWidgetManager.updateAppWidget(appWidgetId, views)
         }
@@ -337,7 +351,15 @@ class MusicWidgetProvider : AppWidgetProvider() {
             return (0.299 * r + 0.587 * g + 0.114 * b).toInt()
         }
 
-        private fun setupClickListeners(context: Context, views: RemoteViews) {
+        private fun setupClickListeners(context: Context, views: RemoteViews, includePrevNext: Boolean, metadata: MediaMetadata?) {
+            // Click listener for the whole widget
+            if (metadata?.clickIntent != null) {
+                views.setOnClickPendingIntent(R.id.widget_root, metadata.clickIntent)
+            } else {
+                // Do nothing if there's no intent
+                views.setOnClickPendingIntent(R.id.widget_root, null)
+            }
+
             // Play/Pause button
             val playPauseIntent = Intent(context, MusicWidgetProvider::class.java).apply {
                 action = ACTION_PLAY_PAUSE
@@ -347,24 +369,33 @@ class MusicWidgetProvider : AppWidgetProvider() {
             )
             views.setOnClickPendingIntent(R.id.play_pause_button, playPausePendingIntent)
 
-            // Next button
-            val nextIntent = Intent(context, MusicWidgetProvider::class.java).apply {
-                action = ACTION_NEXT
-            }
-            val nextPendingIntent = PendingIntent.getBroadcast(
-                context, 1, nextIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-            )
-            views.setOnClickPendingIntent(R.id.next_button, nextPendingIntent)
+            if (includePrevNext) {
+                // Next button
+                val nextIntent = Intent(context, MusicWidgetProvider::class.java).apply {
+                    action = ACTION_NEXT
+                }
+                val nextPendingIntent = PendingIntent.getBroadcast(
+                    context, 1, nextIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                )
+                views.setOnClickPendingIntent(R.id.next_button, nextPendingIntent)
 
-            // Previous button
-            val previousIntent = Intent(context, MusicWidgetProvider::class.java).apply {
-                action = ACTION_PREVIOUS
+                // Previous button
+                val previousIntent = Intent(context, MusicWidgetProvider::class.java).apply {
+                    action = ACTION_PREVIOUS
+                }
+                val previousPendingIntent = PendingIntent.getBroadcast(
+                    context, 2, previousIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                )
+                views.setOnClickPendingIntent(R.id.previous_button, previousPendingIntent)
             }
-            val previousPendingIntent = PendingIntent.getBroadcast(
-                context, 2, previousIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-            )
-            views.setOnClickPendingIntent(R.id.previous_button, previousPendingIntent)
         }
+    }
+
+    override fun onAppWidgetOptionsChanged(context: Context, appWidgetManager: AppWidgetManager, appWidgetId: Int, newOptions: Bundle?) {
+        Log.d(TAG, "onAppWidgetOptionsChanged called")
+        val metadata = MediaNotificationListener.getCurrentMetadata()
+        updateAppWidget(context, appWidgetManager, appWidgetId, metadata)
+        super.onAppWidgetOptionsChanged(context, appWidgetManager, appWidgetId, newOptions)
     }
 
     override fun onUpdate(
@@ -420,5 +451,6 @@ data class MediaMetadata(
     val isPlaying: Boolean,
     val position: Long,
     val duration: Long,
-    val appIcon: Bitmap? = null
+    val appIcon: Bitmap? = null,
+    val clickIntent: PendingIntent? = null
 )

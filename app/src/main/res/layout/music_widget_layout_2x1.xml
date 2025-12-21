@@ -1,8 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/widget_root"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:clickable="true"
+    android:focusable="true">
 
     <!-- Widget background (dynamic accent when no music) -->
     <ImageView
@@ -39,45 +41,45 @@
         <!-- Music Icon (top left) -->
         <ImageView
             android:id="@+id/music_icon"
-            android:layout_width="24dp"
-            android:layout_height="24dp"
+            android:layout_width="16dp"
+            android:layout_height="16dp"
             android:layout_alignParentTop="true"
             android:layout_alignParentStart="true"
             android:src="@drawable/ic_music_note"
             android:contentDescription="Music" />
 
-        <!-- Play/Pause Button Background Circle (top right) -->
+        <!-- Play/Pause Button Background Circle (centered right) -->
         <ImageView
             android:id="@+id/play_pause_button_background"
-            android:layout_width="64dp"
-            android:layout_height="64dp"
-            android:layout_alignParentTop="true"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
             android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true"
             android:contentDescription="Button Background"
             android:scaleType="fitXY" />
 
-        <!-- Circular Progress Ring (top right) -->
+        <!-- Circular Progress Ring (centered right) -->
         <ImageView
             android:id="@+id/progress_ring"
-            android:layout_width="64dp"
-            android:layout_height="64dp"
-            android:layout_alignParentTop="true"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
             android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true"
             android:contentDescription="Progress Ring"
             android:scaleType="fitXY" />
 
-        <!-- Play/Pause Button (top right) -->
+        <!-- Play/Pause Button (centered right) -->
         <ImageButton
             android:id="@+id/play_pause_button"
-            android:layout_width="64dp"
-            android:layout_height="64dp"
-            android:layout_alignParentTop="true"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
             android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true"
             android:background="@android:color/transparent"
             android:src="@drawable/ic_pause"
             android:contentDescription="Play/Pause"
             android:scaleType="centerInside"
-            android:padding="18dp" />
+            android:padding="12dp" />
 
         <!-- Track Info Container (bottom) -->
         <LinearLayout
@@ -85,21 +87,21 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_alignParentBottom="true"
-            android:orientation="vertical"
-            android:layout_marginBottom="4dp">
+            android:layout_toStartOf="@+id/play_pause_button"
+            android:layout_marginEnd="12dp"
+            android:orientation="vertical">
 
             <!-- Track Title -->
             <TextView
                 android:id="@+id/track_title"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="No track playing"
-                android:textColor="#FFFFFF"
-                android:textSize="16sp"
+                android:ellipsize="end"
                 android:fontFamily="sans-serif-medium"
                 android:maxLines="1"
-                android:ellipsize="end"
-                android:maxEms="15" />
+                android:text="No track playing"
+                android:textColor="#FFFFFF"
+                android:textSize="14sp" />
 
             <!-- Artist Name -->
             <TextView
@@ -108,48 +110,13 @@
                 android:layout_height="wrap_content"
                 android:text=""
                 android:textColor="#FFFFFF"
-                android:textSize="16sp"
-                android:fontFamily="sans-serif-medium"
+                android:textSize="12sp"
+                android:fontFamily="sans-serif"
                 android:maxLines="1"
-                android:ellipsize="end"
-                android:maxEms="20"
-                android:layout_marginBottom="8dp" />
+                android:ellipsize="end" />
 
-            <!-- Control Buttons -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="start"
-                android:layout_marginTop="12dp"
-                android:layout_marginStart="-8dp">
-
-                <!-- Previous Button -->
-                <ImageButton
-                    android:id="@+id/previous_button"
-                    android:layout_width="36dp"
-                    android:layout_height="36dp"
-                    android:background="@android:color/transparent"
-                    android:src="@drawable/ic_skip_previous"
-                    android:contentDescription="Previous"
-                    android:scaleType="centerInside"
-                    android:padding="6dp" />
-
-                <!-- Next Button -->
-                <ImageButton
-                    android:id="@+id/next_button"
-                    android:layout_width="36dp"
-                    android:layout_height="36dp"
-                    android:layout_marginStart="24dp"
-                    android:background="@android:color/transparent"
-                    android:src="@drawable/ic_skip_next"
-                    android:contentDescription="Next"
-                    android:scaleType="centerInside"
-                    android:padding="6dp" />
-
-            </LinearLayout>
         </LinearLayout>
 
     </RelativeLayout>
 
-</FrameLayout>
+</RelativeLayout>

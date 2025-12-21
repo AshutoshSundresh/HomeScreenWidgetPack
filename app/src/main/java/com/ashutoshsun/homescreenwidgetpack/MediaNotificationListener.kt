@@ -1,5 +1,6 @@
 package com.ashutoshsun.homescreenwidgetpack
 
+import android.app.PendingIntent
 import android.content.Intent
 import android.graphics.Bitmap
 import android.media.MediaMetadata
@@ -154,6 +155,7 @@ class MediaNotificationListener : NotificationListenerService() {
                 
                 // Get notification small icon (the monochrome icon from status bar)
                 val appIcon = getNotificationIcon(sbn)
+                val clickIntent = sbn.notification.contentIntent
 
                 currentMetadata = com.ashutoshsun.homescreenwidgetpack.MediaMetadata(
                     title = title,
@@ -162,7 +164,8 @@ class MediaNotificationListener : NotificationListenerService() {
                     isPlaying = isPlaying,
                     position = position,
                     duration = duration,
-                    appIcon = appIcon
+                    appIcon = appIcon,
+                    clickIntent = clickIntent
                 )
 
                 Log.d(TAG, "Updated metadata: $title - $artist (Playing: $isPlaying)")
