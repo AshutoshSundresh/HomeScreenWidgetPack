@@ -130,40 +130,42 @@ class MusicWidgetProvider : AppWidgetProvider() {
                 // No media playing - show dynamic accent background
                 views.setTextViewText(R.id.track_title, "No track playing")
                 views.setTextViewText(R.id.artist_name, "")
-                
+
                 // Hide album art, show dynamic color background
                 views.setViewVisibility(R.id.album_art, View.GONE)
                 views.setViewVisibility(R.id.widget_background, View.VISIBLE)
-                
-                // Set dynamic accent color for background
+
+                // Get Material You colors
+                val darkPrimary = getDarkPrimaryColor(context)
                 val accentColor = getMaterialYouAccentColor(context)
-                views.setInt(R.id.widget_background, "setBackgroundColor", accentColor)
-                
+
+                // Set dark primary color for background
+                views.setInt(R.id.widget_background, "setBackgroundColor", darkPrimary)
+
                 // Remove scrim overlay
                 views.setInt(R.id.overlay_scrim, "setBackgroundColor", Color.TRANSPARENT)
-                
+
                 // Text is always white
                 views.setTextColor(R.id.track_title, Color.WHITE)
                 views.setTextColor(R.id.artist_name, Color.WHITE)
-                
-                // Calculate brightness of accent color for button styling
-                val accentBrightness = calculateColorBrightness(accentColor)
-                val isDark = accentBrightness < 128
-                
-                val controlsTint = if (isDark) Color.WHITE else Color.BLACK
-                
-                // For no music state, create white/black circle
-                val circleBackground = createColoredCircle(playPauseButtonSize, controlsTint)
+
+                // Create accent-colored circle for play/pause button
+                val circleBackground = createColoredCircle(playPauseButtonSize, accentColor)
                 views.setImageViewBitmap(R.id.play_pause_button_background, circleBackground)
-                
-                // Set contrasting icon color
-                views.setInt(R.id.play_pause_button, "setColorFilter", if (isDark) Color.BLACK else Color.WHITE)
-                views.setInt(R.id.music_icon, "setColorFilter", controlsTint)
-                
+
+                // Set dark primary icon color for play/pause
+                views.setInt(R.id.play_pause_button, "setColorFilter", darkPrimary)
+                views.setImageViewResource(R.id.play_pause_button, R.drawable.ic_play)
+
+                // Tint music and nav icons with accent color
+                views.setInt(R.id.music_icon, "setColorFilter", accentColor)
+                if (!isSmallLayout) {
+                    views.setInt(R.id.previous_button, "setColorFilter", accentColor)
+                    views.setInt(R.id.next_button, "setColorFilter", accentColor)
+                }
+
                 // No progress ring when no music playing
                 views.setImageViewBitmap(R.id.progress_ring, null)
-                
-                views.setImageViewResource(R.id.play_pause_button, R.drawable.ic_play)
             }
 
             // Set up click listeners
@@ -337,6 +339,16 @@ class MusicWidgetProvider : AppWidgetProvider() {
             // Android 13+ is guaranteed, use dynamic color directly
             return context.resources.getColor(
                 android.R.color.system_accent1_200,
+                context.theme
+            )
+        }
+        
+        /**
+         * Get system dark primary color (Android 12+/API 31+)
+         */
+        private fun getDarkPrimaryColor(context: Context): Int {
+            return context.resources.getColor(
+                android.R.color.system_neutral1_900,
                 context.theme
             )
         }
