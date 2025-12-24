@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <PreferenceCategory
+        android:title="Music Widget">
+
+        <SwitchPreferenceCompat
+            android:key="blur_effect"
+            android:title="Enable blur effect"
+            android:summary="Apply a blur effect to the album art background"
+            android:defaultValue="true" />
+
+        <SwitchPreferenceCompat
+            android:key="gradient_overlay"
+            android:title="Enable gradient overlay"
+            android:summary="Adds a top-to-bottom gradient over the album art"
+            android:defaultValue="true" />
+
+    </PreferenceCategory>
+
+</PreferenceScreen>

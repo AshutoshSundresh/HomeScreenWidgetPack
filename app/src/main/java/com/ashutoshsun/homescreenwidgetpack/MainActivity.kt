@@ -37,9 +37,15 @@ class MainActivity : AppCompatActivity() {
     private fun setupUI() {
         val statusText = findViewById<TextView>(R.id.permission_status)
         val enableButton = findViewById<Button>(R.id.enable_permission_button)
+        val settingsButton = findViewById<Button>(R.id.settings_button)
 
         enableButton.setOnClickListener {
             openNotificationListenerSettings()
+        }
+
+        settingsButton.setOnClickListener {
+            val intent = Intent(this, SettingsActivity::class.java)
+            startActivity(intent)
         }
 
         updatePermissionStatus()
@@ -51,7 +57,7 @@ class MainActivity : AppCompatActivity() {
 
         if (isNotificationListenerEnabled()) {
             statusText.text = "✓ Notification Access Enabled\n\nYou can now add the music widget to your home screen!"
-            enableButton.text = "Open Settings"
+            enableButton.text = "Open Notification Access Settings"
         } else {
             statusText.text = "⚠ Notification Access Required\n\nThe music widget needs notification access to display currently playing media."
             enableButton.text = "Enable Notification Access"

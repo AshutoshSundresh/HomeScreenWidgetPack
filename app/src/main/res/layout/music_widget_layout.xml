@@ -21,6 +21,13 @@
         android:scaleType="centerCrop"
         android:contentDescription="Album Art" />
 
+    <!-- Gradient overlay -->
+    <ImageView
+        android:id="@+id/gradient_overlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="fitXY" />
+
     <!-- Dark overlay scrim for better text readability -->
     <ImageView
         android:id="@+id/overlay_scrim"

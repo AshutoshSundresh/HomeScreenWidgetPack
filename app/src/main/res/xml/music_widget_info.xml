@@ -9,4 +9,5 @@
     android:initialLayout="@layout/music_widget_layout"
     android:resizeMode="horizontal|vertical"
     android:widgetCategory="home_screen"
+    android:label="@string/music_widget_label"
     android:description="@string/music_widget_description" />

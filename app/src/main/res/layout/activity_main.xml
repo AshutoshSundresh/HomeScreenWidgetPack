@@ -86,6 +86,16 @@
 
             </com.google.android.material.card.MaterialCardView>
 
+            <!-- Settings Button -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/settings_button"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Settings"
+                android:paddingVertical="14dp"
+                app:cornerRadius="12dp"
+                style="@style/Widget.Material3.Button.OutlinedButton" />
+
         </LinearLayout>
 
     </ScrollView>

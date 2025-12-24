@@ -11,6 +11,7 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.RectF
+import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.renderscript.Allocation
 import android.renderscript.Element
@@ -19,6 +20,9 @@ import android.renderscript.ScriptIntrinsicBlur
 import android.widget.RemoteViews
 import android.util.Log
 import android.view.View
+import androidx.core.graphics.ColorUtils
+import androidx.core.graphics.drawable.toBitmap
+import androidx.preference.PreferenceManager
 import androidx.palette.graphics.Palette
 
 class MusicWidgetProvider : AppWidgetProvider() {
@@ -59,15 +63,22 @@ class MusicWidgetProvider : AppWidgetProvider() {
 
             val playPauseButtonSize = if (isSmallLayout) 48 else 64
 
+            val prefs = PreferenceManager.getDefaultSharedPreferences(context)
+            val blurEnabled = prefs.getBoolean("blur_effect", true)
+            val gradientEnabled = prefs.getBoolean("gradient_overlay", true)
+
             // Update track information
             if (metadata != null && metadata.albumArt != null) {
                 // Music is playing with album art
                 views.setTextViewText(R.id.track_title, metadata.title ?: "Unknown Track")
                 views.setTextViewText(R.id.artist_name, metadata.artist ?: "Unknown Artist")
                 
-                // Apply strong blur to album art
-                val blurredAlbumArt = applyBlur(context, metadata.albumArt, 25f)
-                views.setImageViewBitmap(R.id.album_art, blurredAlbumArt)
+                val albumArt = if (blurEnabled) {
+                    applyBlur(context, metadata.albumArt, 25f)
+                } else {
+                    metadata.albumArt
+                }
+                views.setImageViewBitmap(R.id.album_art, albumArt)
                 views.setViewVisibility(R.id.album_art, View.VISIBLE)
                 
                 // Set app icon if available
@@ -87,6 +98,21 @@ class MusicWidgetProvider : AppWidgetProvider() {
                 // Text is always white
                 views.setTextColor(R.id.track_title, Color.WHITE)
                 views.setTextColor(R.id.artist_name, Color.WHITE)
+
+                if (gradientEnabled) {
+                    val darkenedColor = darkenColor(dominantColor, 0.7f)
+                    val gradient = GradientDrawable(
+                        GradientDrawable.Orientation.TOP_BOTTOM,
+                        intArrayOf(darkenedColor, Color.TRANSPARENT)
+                    )
+                    views.setImageViewBitmap(R.id.gradient_overlay, gradient.toBitmap(albumArt.width, albumArt.height))
+                    views.setViewVisibility(R.id.gradient_overlay, View.VISIBLE)
+                    views.setInt(R.id.overlay_scrim, "setBackgroundColor", Color.TRANSPARENT)
+                } else {
+                    views.setViewVisibility(R.id.gradient_overlay, View.GONE)
+                    val scrimColor = Color.argb(102, 0, 0, 0) // 40% dark scrim
+                    views.setInt(R.id.overlay_scrim, "setBackgroundColor", scrimColor)
+                }
                 
                 // Create colored circle background for play/pause button
                 val circleBackground = createColoredCircle(playPauseButtonSize, dominantColor)
@@ -101,10 +127,6 @@ class MusicWidgetProvider : AppWidgetProvider() {
                     views.setInt(R.id.previous_button, "setColorFilter", dominantColor)
                     views.setInt(R.id.next_button, "setColorFilter", dominantColor)
                 }
-                
-                // Apply darker scrim overlay on top of blur
-                val scrimColor = Color.argb(102, 0, 0, 0) // 40% dark scrim
-                views.setInt(R.id.overlay_scrim, "setBackgroundColor", scrimColor)
                 
                 // Hide dynamic color background when music is playing
                 views.setViewVisibility(R.id.widget_background, View.GONE)
@@ -133,6 +155,7 @@ class MusicWidgetProvider : AppWidgetProvider() {
 
                 // Hide album art, show dynamic color background
                 views.setViewVisibility(R.id.album_art, View.GONE)
+                views.setViewVisibility(R.id.gradient_overlay, View.GONE)
                 views.setViewVisibility(R.id.widget_background, View.VISIBLE)
 
                 // Get Material You colors
@@ -172,6 +195,16 @@ class MusicWidgetProvider : AppWidgetProvider() {
             setupClickListeners(context, views, !isSmallLayout, metadata)
 
             appWidgetManager.updateAppWidget(appWidgetId, views)
+        }
+
+        /**
+         * Darkens a color by a given factor.
+         * @param color The color to darken.
+         * @param factor The factor to darken by (0.0 to 1.0).
+         * @return The darkened color.
+         */
+        private fun darkenColor(color: Int, factor: Float): Int {
+            return ColorUtils.blendARGB(color, Color.BLACK, factor)
         }
 
         /**
