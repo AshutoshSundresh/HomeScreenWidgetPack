@@ -38,7 +38,7 @@ class MusicWidgetProvider : AppWidgetProvider() {
             val appWidgetManager = AppWidgetManager.getInstance(context)
             val componentName = ComponentName(context, MusicWidgetProvider::class.java)
             val appWidgetIds = appWidgetManager.getAppWidgetIds(componentName)
-            
+
             appWidgetIds.forEach { appWidgetId ->
                 updateAppWidget(context, appWidgetManager, appWidgetId, metadata)
             }
@@ -68,13 +68,14 @@ class MusicWidgetProvider : AppWidgetProvider() {
             val gradientEnabled = prefs.getBoolean("gradient_overlay", true)
             val blurStrength = prefs.getInt("blur_strength", 10).toFloat()
             val gradientDarkness = prefs.getInt("gradient_darkness", 30) / 100f
+            val useAppIcon = prefs.getBoolean("use_app_icon", false)
 
             // Update track information
             if (metadata != null && metadata.albumArt != null) {
                 // Music is playing with album art
                 views.setTextViewText(R.id.track_title, metadata.title ?: "Unknown Track")
                 views.setTextViewText(R.id.artist_name, metadata.artist ?: "Unknown Artist")
-                
+
                 val albumArt = if (blurEnabled) {
                     applyBlur(context, metadata.albumArt, blurStrength)
                 } else {
@@ -82,21 +83,27 @@ class MusicWidgetProvider : AppWidgetProvider() {
                 }
                 views.setImageViewBitmap(R.id.album_art, albumArt)
                 views.setViewVisibility(R.id.album_art, View.VISIBLE)
-                
-                // Set app icon if available
-                if (metadata.appIcon != null) {
-                    views.setImageViewBitmap(R.id.music_icon, metadata.appIcon)
-                } else {
-                    views.setImageViewResource(R.id.music_icon, R.drawable.ic_music_note)
-                }
-                
+
                 // Calculate brightness for color extraction
                 val brightness = calculateBrightness(metadata.albumArt)
                 val isDark = brightness < 128
-                
+
                 // Extract dominant vibrant color from album art
                 val dominantColor = extractDominantColor(metadata.albumArt, isDark)
-                
+
+                // Set app icon based on preference
+                if (useAppIcon && metadata.launcherIcon != null) {
+                    views.setImageViewBitmap(R.id.music_icon, metadata.launcherIcon)
+                    views.setInt(R.id.music_icon, "setColorFilter", Color.TRANSPARENT) // Remove any tint
+                } else {
+                    if (metadata.notificationIcon != null) {
+                        views.setImageViewBitmap(R.id.music_icon, metadata.notificationIcon)
+                    } else {
+                        views.setImageViewResource(R.id.music_icon, R.drawable.ic_music_note)
+                    }
+                    views.setInt(R.id.music_icon, "setColorFilter", dominantColor) // Tint with dominant color
+                }
+
                 // Text is always white
                 views.setTextColor(R.id.track_title, Color.WHITE)
                 views.setTextColor(R.id.artist_name, Color.WHITE)
@@ -115,21 +122,19 @@ class MusicWidgetProvider : AppWidgetProvider() {
                     val scrimColor = Color.argb(102, 0, 0, 0) // 40% dark scrim
                     views.setInt(R.id.overlay_scrim, "setBackgroundColor", scrimColor)
                 }
-                
+
                 // Create colored circle background for play/pause button
                 val circleBackground = createColoredCircle(playPauseButtonSize, dominantColor)
                 views.setImageViewBitmap(R.id.play_pause_button_background, circleBackground)
-                
+
                 // Set dark icon
                 views.setInt(R.id.play_pause_button, "setColorFilter", Color.parseColor("#1A1A1A")) // Dark icon
-                
-                // Use dominant color for all playback controls (notification icon can be tinted)
-                views.setInt(R.id.music_icon, "setColorFilter", dominantColor)
+
                 if (!isSmallLayout) {
                     views.setInt(R.id.previous_button, "setColorFilter", dominantColor)
                     views.setInt(R.id.next_button, "setColorFilter", dominantColor)
                 }
-                
+
                 // Hide dynamic color background when music is playing
                 views.setViewVisibility(R.id.widget_background, View.GONE)
 
@@ -183,7 +188,9 @@ class MusicWidgetProvider : AppWidgetProvider() {
                 views.setImageViewResource(R.id.play_pause_button, R.drawable.ic_play)
 
                 // Tint music and nav icons with accent color
+                views.setImageViewResource(R.id.music_icon, R.drawable.ic_music_note)
                 views.setInt(R.id.music_icon, "setColorFilter", accentColor)
+
                 if (!isSmallLayout) {
                     views.setInt(R.id.previous_button, "setColorFilter", accentColor)
                     views.setInt(R.id.next_button, "setColorFilter", accentColor)
@@ -247,25 +254,25 @@ class MusicWidgetProvider : AppWidgetProvider() {
             try {
                 // Create output bitmap
                 val outputBitmap = Bitmap.createBitmap(bitmap.width, bitmap.height, Bitmap.Config.ARGB_8888)
-                
+
                 // Use RenderScript for efficient blur
                 val renderScript = RenderScript.create(context)
                 val input = Allocation.createFromBitmap(renderScript, bitmap)
                 val output = Allocation.createFromBitmap(renderScript, outputBitmap)
-                
+
                 val script = ScriptIntrinsicBlur.create(renderScript, Element.U8_4(renderScript))
                 script.setRadius(radius.coerceIn(1f, 25f))
                 script.setInput(input)
                 script.forEach(output)
-                
+
                 output.copyTo(outputBitmap)
-                
+
                 // Cleanup
                 input.destroy()
                 output.destroy()
                 script.destroy()
                 renderScript.destroy()
-                
+
                 return outputBitmap
             } catch (e: Exception) {
                 Log.e(TAG, "Error applying blur, using original bitmap", e)
@@ -301,7 +308,7 @@ class MusicWidgetProvider : AppWidgetProvider() {
         private fun createProgressRing(sizeDp: Int, color: Int, progress: Float): Bitmap {
             val bitmap = Bitmap.createBitmap(sizeDp, sizeDp, Bitmap.Config.ARGB_8888)
             val canvas = Canvas(bitmap)
-            
+
             val strokeWidth = 2.5f // Much thinner, subtle ring
             val padding = strokeWidth / 2f + 3f // Extra padding to move ring inside
             val rect = RectF(
@@ -310,7 +317,7 @@ class MusicWidgetProvider : AppWidgetProvider() {
                 sizeDp - padding,
                 sizeDp - padding
             )
-            
+
             // Draw background track (full circle) - muted translucent gray
             val backgroundPaint = Paint().apply {
                 this.color = Color.argb(100, 255, 255, 255) // Translucent white/gray (40% opacity)
@@ -319,7 +326,7 @@ class MusicWidgetProvider : AppWidgetProvider() {
                 isAntiAlias = true
             }
             canvas.drawCircle(sizeDp / 2f, sizeDp / 2f, (sizeDp - padding * 2) / 2f, backgroundPaint)
-            
+
             // Draw progress arc on top - solid black
             val progressPaint = Paint().apply {
                 this.color = Color.BLACK // Solid black
@@ -328,11 +335,11 @@ class MusicWidgetProvider : AppWidgetProvider() {
                 isAntiAlias = true
                 strokeCap = Paint.Cap.ROUND
             }
-            
+
             // Draw from top (-90 degrees) clockwise
             val sweepAngle = progress * 360f
             canvas.drawArc(rect, -90f, sweepAngle, false, progressPaint)
-            
+
             return bitmap
         }
 
@@ -346,18 +353,18 @@ class MusicWidgetProvider : AppWidgetProvider() {
             try {
                 // Create a scaled down version for faster palette generation
                 val scaledBitmap = Bitmap.createScaledBitmap(bitmap, 100, 100, false)
-                
+
                 // Generate palette from the album art
                 val palette = Palette.from(scaledBitmap).generate()
                 scaledBitmap.recycle()
-                
+
                 // Always extract the LIGHTEST accent color
                 val accentColor = palette.lightVibrantSwatch?.rgb
                     ?: palette.lightMutedSwatch?.rgb
                     ?: palette.vibrantSwatch?.rgb
                     ?: palette.mutedSwatch?.rgb
                     ?: Color.WHITE // Fallback to white
-                
+
                 // Return color directly without post-processing
                 return accentColor
             } catch (e: Exception) {
@@ -377,7 +384,7 @@ class MusicWidgetProvider : AppWidgetProvider() {
                 context.theme
             )
         }
-        
+
         /**
          * Get system dark primary color (Android 12+/API 31+)
          */
@@ -460,9 +467,9 @@ class MusicWidgetProvider : AppWidgetProvider() {
 
     override fun onReceive(context: Context, intent: Intent) {
         super.onReceive(context, intent)
-        
+
         Log.d(TAG, "onReceive: ${intent.action}")
-        
+
         when (intent.action) {
             ACTION_PLAY_PAUSE -> {
                 MediaNotificationListener.sendMediaAction(MediaNotificationListener.ACTION_PLAY_PAUSE)
@@ -498,6 +505,7 @@ data class MediaMetadata(
     val isPlaying: Boolean,
     val position: Long,
     val duration: Long,
-    val appIcon: Bitmap? = null,
+    val notificationIcon: Bitmap? = null,
+    val launcherIcon: Bitmap? = null,
     val clickIntent: PendingIntent? = null
 )

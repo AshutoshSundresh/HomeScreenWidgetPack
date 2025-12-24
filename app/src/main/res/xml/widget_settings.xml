@@ -33,6 +33,12 @@
             android:max="100"
             android:dependency="gradient_overlay"/>
 
+        <SwitchPreferenceCompat
+            android:key="use_app_icon"
+            android:title="Use app icon"
+            android:summary="Use the app's icon instead of the color-tinted notification icon"
+            android:defaultValue="false" />
+
     </PreferenceCategory>
 
 </PreferenceScreen>

@@ -2,7 +2,10 @@ package com.ashutoshsun.homescreenwidgetpack
 
 import android.app.PendingIntent
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.drawable.BitmapDrawable
 import android.media.MediaMetadata
 import android.media.session.MediaController
 import android.media.session.MediaSession
@@ -13,7 +16,6 @@ import android.os.SystemClock
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import android.util.Log
-import android.view.KeyEvent
 
 class MediaNotificationListener : NotificationListenerService() {
 
@@ -58,7 +60,7 @@ class MediaNotificationListener : NotificationListenerService() {
     override fun onListenerConnected() {
         super.onListenerConnected()
         Log.d(TAG, "Notification listener connected")
-        
+
         // Check existing notifications for media sessions
         try {
             activeNotifications?.forEach { sbn ->
@@ -82,7 +84,7 @@ class MediaNotificationListener : NotificationListenerService() {
                 controller.unregisterCallback(mediaCallback)
                 activeControllers.remove(key)
                 Log.d(TAG, "Removed media controller for: ${it.packageName}")
-                
+
                 // If this was our current controller, clear it
                 if (currentController == controller) {
                     currentController = null
@@ -98,18 +100,18 @@ class MediaNotificationListener : NotificationListenerService() {
         try {
             val notification = sbn.notification ?: return
             val mediaSession = notification.extras?.get("android.mediaSession") as? MediaSession.Token
-            
+
             if (mediaSession != null) {
                 val controller = MediaController(this, mediaSession)
                 val key = sbn.key
-                
+
                 // Register callback if not already registered
                 if (!activeControllers.containsKey(key)) {
                     controller.registerCallback(mediaCallback)
                     activeControllers[key] = controller
                     Log.d(TAG, "Found media session from: ${sbn.packageName}")
                 }
-                
+
                 // Update current controller and metadata with notification small icon
                 currentController = controller
                 currentPackageName = sbn.packageName
@@ -123,7 +125,7 @@ class MediaNotificationListener : NotificationListenerService() {
 
     private var currentPackageName: String? = null
     private var currentNotification: StatusBarNotification? = null
-    
+
     private val mediaCallback = object : MediaController.Callback() {
         override fun onPlaybackStateChanged(state: PlaybackState?) {
             super.onPlaybackStateChanged(state)
@@ -142,19 +144,20 @@ class MediaNotificationListener : NotificationListenerService() {
         try {
             val metadata = controller.metadata
             val playbackState = controller.playbackState
-            
+
             if (metadata != null) {
                 val title = metadata.getString(MediaMetadata.METADATA_KEY_TITLE)
                 val artist = metadata.getString(MediaMetadata.METADATA_KEY_ARTIST)
                 val albumArt = metadata.getBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART)
                     ?: metadata.getBitmap(MediaMetadata.METADATA_KEY_ART)
                 val duration = metadata.getLong(MediaMetadata.METADATA_KEY_DURATION)
-                
+
                 val isPlaying = playbackState?.state == PlaybackState.STATE_PLAYING
                 val position = playbackState?.position ?: 0L
-                
+
                 // Get notification small icon (the monochrome icon from status bar)
-                val appIcon = getNotificationIcon(sbn)
+                val notificationIcon = getNotificationIcon(sbn)
+                val launcherIcon = getLauncherIcon(sbn.packageName)
                 val clickIntent = sbn.notification.contentIntent
 
                 currentMetadata = com.ashutoshsun.homescreenwidgetpack.MediaMetadata(
@@ -164,7 +167,8 @@ class MediaNotificationListener : NotificationListenerService() {
                     isPlaying = isPlaying,
                     position = position,
                     duration = duration,
-                    appIcon = appIcon,
+                    notificationIcon = notificationIcon,
+                    launcherIcon = launcherIcon,
                     clickIntent = clickIntent
                 )
 
@@ -180,19 +184,47 @@ class MediaNotificationListener : NotificationListenerService() {
             Log.e(TAG, "Error updating metadata", e)
         }
     }
-    
+
+    private fun getLauncherIcon(packageName: String): Bitmap? {
+        return try {
+            val pm = packageManager
+            val appInfo = pm.getApplicationInfo(packageName, 0)
+            val icon = pm.getApplicationIcon(appInfo)
+
+            if (icon is BitmapDrawable) {
+                return icon.bitmap
+            }
+
+            val bitmap = Bitmap.createBitmap(
+                icon.intrinsicWidth.coerceAtLeast(1),
+                icon.intrinsicHeight.coerceAtLeast(1),
+                Bitmap.Config.ARGB_8888
+            )
+            val canvas = Canvas(bitmap)
+            icon.setBounds(0, 0, canvas.width, canvas.height)
+            icon.draw(canvas)
+            bitmap
+        } catch (e: PackageManager.NameNotFoundException) {
+            Log.e(TAG, "App not found: $packageName", e)
+            null
+        } catch (e: Exception) {
+            Log.e(TAG, "Error getting launcher icon for $packageName", e)
+            null
+        }
+    }
+
     private fun getNotificationIcon(sbn: StatusBarNotification): Bitmap? {
         return try {
             // Get the small icon from the notification (status bar icon)
             val icon = sbn.notification.smallIcon?.loadDrawable(this)
-            
+
             if (icon != null) {
                 val bitmap = Bitmap.createBitmap(
                     icon.intrinsicWidth.coerceAtLeast(24),
                     icon.intrinsicHeight.coerceAtLeast(24),
                     Bitmap.Config.ARGB_8888
                 )
-                val canvas = android.graphics.Canvas(bitmap)
+                val canvas = Canvas(bitmap)
                 icon.setBounds(0, 0, canvas.width, canvas.height)
                 icon.draw(canvas)
                 bitmap
