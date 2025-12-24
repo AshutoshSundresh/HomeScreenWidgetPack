@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <PreferenceCategory
         android:title="Music Widget">
@@ -10,11 +11,27 @@
             android:summary="Apply a blur effect to the album art background"
             android:defaultValue="true" />
 
+        <SeekBarPreference
+            android:key="blur_strength"
+            android:title="Blur strength"
+            android:summary="Controls the intensity of the blur effect"
+            android:defaultValue="10"
+            android:max="25"
+            android:dependency="blur_effect"/>
+
         <SwitchPreferenceCompat
             android:key="gradient_overlay"
             android:title="Enable gradient overlay"
             android:summary="Adds a top-to-bottom gradient over the album art"
             android:defaultValue="true" />
+
+        <SeekBarPreference
+            android:key="gradient_darkness"
+            android:title="Gradient darkness"
+            android:summary="Controls the opacity of the gradient overlay"
+            android:defaultValue="30"
+            android:max="100"
+            android:dependency="gradient_overlay"/>
 
     </PreferenceCategory>
 

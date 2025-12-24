@@ -66,6 +66,8 @@ class MusicWidgetProvider : AppWidgetProvider() {
             val prefs = PreferenceManager.getDefaultSharedPreferences(context)
             val blurEnabled = prefs.getBoolean("blur_effect", true)
             val gradientEnabled = prefs.getBoolean("gradient_overlay", true)
+            val blurStrength = prefs.getInt("blur_strength", 10).toFloat()
+            val gradientDarkness = prefs.getInt("gradient_darkness", 30) / 100f
 
             // Update track information
             if (metadata != null && metadata.albumArt != null) {
@@ -74,7 +76,7 @@ class MusicWidgetProvider : AppWidgetProvider() {
                 views.setTextViewText(R.id.artist_name, metadata.artist ?: "Unknown Artist")
                 
                 val albumArt = if (blurEnabled) {
-                    applyBlur(context, metadata.albumArt, 25f)
+                    applyBlur(context, metadata.albumArt, blurStrength)
                 } else {
                     metadata.albumArt
                 }
@@ -100,7 +102,7 @@ class MusicWidgetProvider : AppWidgetProvider() {
                 views.setTextColor(R.id.artist_name, Color.WHITE)
 
                 if (gradientEnabled) {
-                    val darkenedColor = darkenColor(dominantColor, 0.7f)
+                    val darkenedColor = darkenColor(dominantColor, gradientDarkness)
                     val gradient = GradientDrawable(
                         GradientDrawable.Orientation.TOP_BOTTOM,
                         intArrayOf(darkenedColor, Color.TRANSPARENT)
