@@ -5,9 +5,11 @@ import android.content.Intent
 import android.os.Bundle
 import android.provider.Settings
 import android.widget.Button
+import android.widget.ImageButton
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
@@ -38,6 +40,7 @@ class MainActivity : AppCompatActivity() {
         val statusText = findViewById<TextView>(R.id.permission_status)
         val enableButton = findViewById<Button>(R.id.enable_permission_button)
         val settingsButton = findViewById<Button>(R.id.settings_button)
+        val infoButton = findViewById<ImageButton>(R.id.info_button)
 
         enableButton.setOnClickListener {
             openNotificationListenerSettings()
@@ -48,7 +51,19 @@ class MainActivity : AppCompatActivity() {
             startActivity(intent)
         }
 
+        infoButton.setOnClickListener {
+            showAboutDialog()
+        }
+
         updatePermissionStatus()
+    }
+
+    private fun showAboutDialog() {
+        AlertDialog.Builder(this)
+            .setTitle("About")
+            .setMessage("Authored by Ashutosh Sundresh in 2025")
+            .setPositiveButton("OK", null)
+            .show()
     }
 
     private fun updatePermissionStatus() {
