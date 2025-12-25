@@ -226,6 +226,31 @@ class MusicWidgetProvider : AppWidgetProvider() {
         }
 
         /**
+         * Lightens a color by a given factor.
+         * @param color The color to lighten.
+         * @param factor The factor to lighten by (0.0 to 1.0).
+         * @return The lightened color.
+         */
+        private fun lightenColor(color: Int, factor: Float): Int {
+            return ColorUtils.blendARGB(color, Color.WHITE, factor)
+        }
+
+        /**
+         * Amplifies the vibrancy of a color by increasing its saturation and ensuring a minimum brightness.
+         * @param color The color to modify.
+         * @return The amplified vibrant color.
+         */
+        private fun amplifyVibrancy(color: Int): Int {
+            val hsv = FloatArray(3)
+            Color.colorToHSV(color, hsv)
+            // Increase saturation by 30%
+            hsv[1] = (hsv[1] * 1.3f).coerceIn(0f, 1f)
+            // Ensure brightness is at least 60%
+            hsv[2] = hsv[2].coerceAtLeast(0.6f)
+            return Color.HSVToColor(hsv)
+        }
+
+        /**
          * Calculate the average brightness of an image
          * Returns a value between 0 (dark) and 255 (bright)
          */
@@ -367,15 +392,17 @@ class MusicWidgetProvider : AppWidgetProvider() {
                 val palette = Palette.from(scaledBitmap).generate()
                 scaledBitmap.recycle()
 
-                // Always extract the LIGHTEST accent color
-                val accentColor = palette.lightVibrantSwatch?.rgb
-                    ?: palette.lightMutedSwatch?.rgb
-                    ?: palette.vibrantSwatch?.rgb
-                    ?: palette.mutedSwatch?.rgb
-                    ?: Color.WHITE // Fallback to white
+                // Prioritize vibrant color, with fallbacks
+                val vibrantSwatch = palette.vibrantSwatch
+                    ?: palette.lightVibrantSwatch
+                    ?: palette.dominantSwatch
 
-                // Return color directly without post-processing
-                return accentColor
+                val baseColor = vibrantSwatch?.rgb ?: Color.WHITE
+
+                // Amplify the vibrancy and lighten the color
+                val vibrantColor = amplifyVibrancy(baseColor)
+                return lightenColor(vibrantColor, 0.4f)
+
             } catch (e: Exception) {
                 Log.e(TAG, "Error extracting dominant color", e)
                 // Return white fallback
