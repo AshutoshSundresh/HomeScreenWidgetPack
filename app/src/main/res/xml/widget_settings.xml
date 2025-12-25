@@ -28,10 +28,32 @@
         <SeekBarPreference
             android:key="gradient_darkness"
             android:title="Gradient darkness"
-            android:summary="Controls the opacity of the gradient overlay"
+            android:summary="Controls the darkness of the gradient overlay"
             android:defaultValue="30"
             android:max="100"
             android:dependency="gradient_overlay"/>
+
+        <SeekBarPreference
+            android:key="gradient_opacity"
+            android:title="Gradient opacity"
+            android:summary="Controls the opacity of the gradient overlay"
+            android:defaultValue="80"
+            android:max="100"
+            android:dependency="gradient_overlay"/>
+
+        <SwitchPreferenceCompat
+            android:key="general_darkness_overlay"
+            android:title="Enable general darkness"
+            android:summary="Apply a dark overlay to the entire album art"
+            android:defaultValue="false" />
+
+        <SeekBarPreference
+            android:key="general_darkness_strength"
+            android:title="General darkness strength"
+            android:summary="Controls the strength of the dark overlay"
+            android:defaultValue="40"
+            android:max="100"
+            android:dependency="general_darkness_overlay"/>
 
         <SwitchPreferenceCompat
             android:key="use_app_icon"

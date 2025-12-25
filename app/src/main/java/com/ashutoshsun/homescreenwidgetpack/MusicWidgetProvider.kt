@@ -68,6 +68,9 @@ class MusicWidgetProvider : AppWidgetProvider() {
             val gradientEnabled = prefs.getBoolean("gradient_overlay", true)
             val blurStrength = prefs.getInt("blur_strength", 10).toFloat()
             val gradientDarkness = prefs.getInt("gradient_darkness", 30) / 100f
+            val gradientOpacity = prefs.getInt("gradient_opacity", 80) / 100f
+            val generalDarknessEnabled = prefs.getBoolean("general_darkness_overlay", false)
+            val generalDarknessStrength = prefs.getInt("general_darkness_strength", 40) / 100f
             val useAppIcon = prefs.getBoolean("use_app_icon", false)
 
             // Update track information
@@ -110,17 +113,23 @@ class MusicWidgetProvider : AppWidgetProvider() {
 
                 if (gradientEnabled) {
                     val darkenedColor = darkenColor(dominantColor, gradientDarkness)
+                    val finalGradientColor = ColorUtils.setAlphaComponent(darkenedColor, (255 * gradientOpacity).toInt())
                     val gradient = GradientDrawable(
                         GradientDrawable.Orientation.TOP_BOTTOM,
-                        intArrayOf(darkenedColor, Color.TRANSPARENT)
+                        intArrayOf(finalGradientColor, Color.TRANSPARENT)
                     )
                     views.setImageViewBitmap(R.id.gradient_overlay, gradient.toBitmap(albumArt.width, albumArt.height))
                     views.setViewVisibility(R.id.gradient_overlay, View.VISIBLE)
-                    views.setInt(R.id.overlay_scrim, "setBackgroundColor", Color.TRANSPARENT)
                 } else {
                     views.setViewVisibility(R.id.gradient_overlay, View.GONE)
-                    val scrimColor = Color.argb(102, 0, 0, 0) // 40% dark scrim
+                }
+
+                if (generalDarknessEnabled) {
+                    val alpha = (255 * generalDarknessStrength).toInt()
+                    val scrimColor = Color.argb(alpha, 0, 0, 0)
                     views.setInt(R.id.overlay_scrim, "setBackgroundColor", scrimColor)
+                } else {
+                    views.setInt(R.id.overlay_scrim, "setBackgroundColor", Color.TRANSPARENT)
                 }
 
                 // Create colored circle background for play/pause button
